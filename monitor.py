@@ -7,6 +7,7 @@ and send push notifications via ntfy.sh when new calls appear.
 import json
 import os
 import requests
+import time
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -125,12 +126,24 @@ def check_and_notify():
         print(f"  Found {len(new_calls)} new HSOC calls.")
 
         # Send individual notification for each HSOC call
-        for call in new_calls:
+        for i, call in enumerate(new_calls):
             call_type = call.get("call_type_original_desc") or "Unknown"
-            send_notification(
-                title=f"SF Dispatch - {call_type}",
-                message=format_call(call),
-            )
+            try:
+                send_notification(
+                    title=f"SF Dispatch - {call_type}",
+                    message=format_call(call),
+                )
+                # Add delay between notifications to avoid rate limits
+                if i < len(new_calls) - 1:
+                    time.sleep(1)
+            except requests.HTTPError as e:
+                if e.response.status_code == 429:
+                    print(f"  Rate limit hit, skipping remaining notifications")
+                    break
+                else:
+                    print(f"  Failed to send notification: {e}")
+            except Exception as e:
+                print(f"  Failed to send notification: {e}")
     else:
         if seen_ids:
             print("  No new calls in this update.")
@@ -151,9 +164,6 @@ def main():
 
     try:
         check_and_notify()
-    except requests.RequestException as e:
-        print(f"[{datetime.now(timezone.utc).isoformat()}] Network error: {e}")
-        exit(1)
     except Exception as e:
         print(f"[{datetime.now(timezone.utc).isoformat()}] Error: {e}")
         exit(1)
