@@ -67,9 +67,16 @@ def format_call(call):
     neighborhood = call.get("analysis_neighborhood") or ""
     agency = call.get("agency") or "Unknown agency"
     sensitive = call.get("sensitive_call", False)
+    onview_flag = call.get("onview_flag", "Unknown")
 
     if sensitive:
         intersection = "[Sensitive - location suppressed]"
+
+    # Determine source
+    if onview_flag == "HSOC":
+        source = "HSOC Program"
+    else:
+        source = f"Call Type Filter ({onview_flag})"
 
     lines = [
         f"Time: {received_formatted}",
@@ -79,6 +86,7 @@ def format_call(call):
     if neighborhood and not sensitive:
         lines.append(f"Neighborhood: {neighborhood}")
     lines.append(f"Agency: {agency}")
+    lines.append(f"Source: {source}")
 
     return "\n".join(lines)
 
