@@ -154,23 +154,35 @@ def check_and_notify():
         print(f"  Found {len(new_calls)} new HSOC calls.")
 
         # Send individual notification for each HSOC call
+        sent_call_ids = []
         for i, call in enumerate(new_calls):
             call_type = call.get("call_type_original_desc") or "Unknown"
-            send_notification_with_backoff(
+            success = send_notification_with_backoff(
                 title=f"SF Dispatch - {call_type}",
                 message=format_call(call),
             )
-            # Add delay between notifications to avoid rate limits
-            if i < len(new_calls) - 1:
-                time.sleep(1)
+
+            if success:
+                # Track successfully sent call
+                call_id = call.get("id") or call.get("cad_number")
+                if call_id:
+                    sent_call_ids.append(call_id)
+                # Add delay between notifications to avoid rate limits
+                if i < len(new_calls) - 1:
+                    time.sleep(1)
+            else:
+                # Rate limited after backoff - stop sending, will retry next run
+                print(f"  Stopped after {i + 1}/{len(new_calls)} notifications")
+                break
     else:
+        sent_call_ids = []
         if seen_ids:
             print("  No new calls in this update.")
 
-    # Update state — keep a rolling window of IDs
-    all_ids = list(current_ids)
+    # Update state - only mark successfully sent calls as seen
+    updated_seen_ids = list(seen_ids) + sent_call_ids
     state = {
-        "seen_ids": all_ids,
+        "seen_ids": updated_seen_ids,
         "rows_updated_at": current_updated,
     }
     save_state(state)
