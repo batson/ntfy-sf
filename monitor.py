@@ -98,6 +98,34 @@ def send_notification(title, message):
     print(f"  Notification sent: {title}")
 
 
+def send_notification_with_backoff(title, message, max_retries=5):
+    """Send notification with exponential backoff on rate limit errors."""
+    backoff = 2  # Start with 2 second backoff
+    max_backoff = 64  # Cap at 64 seconds
+
+    for attempt in range(max_retries):
+        try:
+            send_notification(title, message)
+            return True
+        except requests.HTTPError as e:
+            if e.response.status_code == 429:
+                if attempt < max_retries - 1:
+                    print(f"  Rate limit hit, retrying in {backoff}s...")
+                    time.sleep(backoff)
+                    backoff = min(backoff * 2, max_backoff)
+                else:
+                    print(f"  Rate limit hit, max retries reached")
+                    return False
+            else:
+                print(f"  Failed to send notification: {e}")
+                return False
+        except Exception as e:
+            print(f"  Failed to send notification: {e}")
+            return False
+
+    return False
+
+
 def check_and_notify():
     state = load_state()
     seen_ids = set(state.get("seen_ids", []))
@@ -128,22 +156,13 @@ def check_and_notify():
         # Send individual notification for each HSOC call
         for i, call in enumerate(new_calls):
             call_type = call.get("call_type_original_desc") or "Unknown"
-            try:
-                send_notification(
-                    title=f"SF Dispatch - {call_type}",
-                    message=format_call(call),
-                )
-                # Add delay between notifications to avoid rate limits
-                if i < len(new_calls) - 1:
-                    time.sleep(1)
-            except requests.HTTPError as e:
-                if e.response.status_code == 429:
-                    print(f"  Rate limit hit, skipping remaining notifications")
-                    break
-                else:
-                    print(f"  Failed to send notification: {e}")
-            except Exception as e:
-                print(f"  Failed to send notification: {e}")
+            send_notification_with_backoff(
+                title=f"SF Dispatch - {call_type}",
+                message=format_call(call),
+            )
+            # Add delay between notifications to avoid rate limits
+            if i < len(new_calls) - 1:
+                time.sleep(1)
     else:
         if seen_ids:
             print("  No new calls in this update.")
