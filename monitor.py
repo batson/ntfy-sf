@@ -42,7 +42,7 @@ def fetch_recent_calls(limit=200):
     params = {
         "$order": "received_datetime DESC",
         "$limit": limit,
-        "$where": "onview_flag = 'HSOC'",
+        "$where": "onview_flag = 'HSOC' OR call_type_original_desc IN ('SIT/LIE ENFORCEMENT', 'HOMELESS COMPLAINT', 'MEET W/CITY EMPLOYEE')",
     }
     resp = requests.get(BASE_URL, params=params, timeout=30)
     resp.raise_for_status()

@@ -5,9 +5,9 @@ Monitors the [DataSF Law Enforcement Dispatched Calls for Service (Real-Time)](h
 ## How it works
 
 - Polls the DataSF SODA API every 5 minutes for new dispatch calls
-- Filters to only HSOC (High School Outreach) flagged calls
+- Filters to HSOC (High School Outreach) flagged calls plus specific call types: SIT/LIE ENFORCEMENT, HOMELESS COMPLAINT, MEET W/CITY EMPLOYEE
 - Tracks seen call IDs in a local state file to detect new entries
-- Each new HSOC call triggers an individual notification
+- Each new matching call triggers an individual notification
 - Notifications go to ntfy.sh topic `sf-dispatch-alerts-3190`
 
 ## Files
