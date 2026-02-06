@@ -1,0 +1,17 @@
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+
+app = "sf-dispatch-monitor"
+primary_region = "sjc"  # San Jose — closest to SF
+
+[build]
+
+[env]
+  STATE_DIR = "/data"
+
+[mounts]
+  source = "state_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

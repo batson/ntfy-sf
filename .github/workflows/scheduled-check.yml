@@ -1,0 +1,23 @@
+name: SF Dispatch Monitor - Scheduled Check
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual triggers
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Start machine and run check
+        run: |
+          # Get machine ID
+          MACHINE_ID=$(flyctl machines list --app sf-dispatch-monitor --json | jq -r '.[0].id')
+          # Start the machine (it will run once and exit)
+          flyctl machine start $MACHINE_ID --app sf-dispatch-monitor
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
